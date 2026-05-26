@@ -1,13 +1,18 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.26.2
+// @version      2026.05.27.1
 // @description  Smart RTL/bidi support for claude.ai — Hebrew/Arabic + math, mirrored desktop patch
+// @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
 // @run-at       document-start
 // @grant        none
 // @noframes
+// @updateURL    https://raw.githubusercontent.com/Tom9j/Claude-rtl-work_with_math/main/claude-rtl.user.js
+// @downloadURL  https://raw.githubusercontent.com/Tom9j/Claude-rtl-work_with_math/main/claude-rtl.user.js
+// @supportURL   https://github.com/Tom9j/Claude-rtl-work_with_math/issues
+// @homepageURL  https://github.com/Tom9j/Claude-rtl-work_with_math
 // ==/UserScript==
 // --- CLAUDE RTL PATCH START ---
 ;(function() {
