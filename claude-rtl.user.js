@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.9
-// @description  Smart RTL/bidi + Gemini-style Hebrew typography for claude.ai (compact inline summations)
+// @version      2026.05.27.10
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (bigger inline summations)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -497,25 +497,23 @@
                 'p[dir="rtl"],li[dir="rtl"],h1[dir="rtl"],h2[dir="rtl"],h3[dir="rtl"],h4[dir="rtl"],h5[dir="rtl"],h6[dir="rtl"],blockquote[dir="rtl"],td[dir="rtl"],th[dir="rtl"],summary[dir="rtl"],label[dir="rtl"],dt[dir="rtl"],dd[dir="rtl"],[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Noto Sans Hebrew","Inter","Heebo","Assistant","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.65;letter-spacing:0;font-feature-settings:"kern" 1,"liga" 1,"calt" 1}',
                 // Code and math inside RTL containers keep their own fonts.
                 '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important;font-feature-settings:revert!important}',
-                // --- MATH SIZING (Gemini-style: subtle, not flashy) ---
-                // Gemini doesn't dramatically scale up math. Inline math sits
-                // about 5% larger than body text, display math gets a modest
-                // 30% bump. Smaller inline bump means tall constructs like
-                // \sum or \int take less vertical space in the line.
-                '.katex{font-size:1.05em!important}',
-                '.katex-display{font-size:1.3em!important}',
+                // --- MATH SIZING ---
+                // Body math gets a small bump so symbols are clearly larger than
+                // surrounding text but the line height isn't blown out.
+                '.katex{font-size:1.1em!important}',
+                '.katex-display{font-size:1.4em!important}',
                 '.katex-display .katex{font-size:1em!important}',
                 // --- INLINE LARGE OPERATORS (sum, int, prod) ---
-                // Claude renders \sum_{...}^{...} with KaTeX in \limits mode
-                // (subscript stacked below, superscript stacked above the sigma),
-                // even in inline math. Gemini, which uses MathJax, renders the
-                // same expression with sidebar sub/sup — far less vertical extent.
-                // We can't change KaTeX's rendering, but shrinking the .msupsub
-                // (which holds the stacked limits) makes them visually smaller and
-                // closer to the sigma, mimicking the sidebar feel.
-                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.05em!important}',
-                '.katex:not(.katex-display) .mop > .msupsub{font-size:.78em!important;margin-left:.05em}',
-                '.katex:not(.katex-display) .mop > .msupsub .mtight{font-size:1em!important}'
+                // KaTeX's default for `.op-symbol.small-op` is 1.2em (relative to
+                // .katex). We bump it to 1.35em so summations/integrals/products
+                // read as clearly larger than ordinary identifiers — Gemini's sums
+                // are big and confident, not lost in the line.
+                //
+                // The .msupsub holds the stacked sub/sup limits (Claude renders
+                // these with \limits even inline). Shrinking it to .82em pulls the
+                // limits visually closer to the sigma and shaves vertical extent.
+                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.35em!important}',
+                '.katex:not(.katex-display) .mop > .msupsub{font-size:.82em!important;margin-left:.04em}'
             ].join('');
             document.head.appendChild(s);
         }
