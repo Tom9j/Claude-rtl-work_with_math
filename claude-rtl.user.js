@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.17
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (tight line-height around inline math)
+// @version      2026.05.27.18
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (cap inline math boxes so underbrace doesn't blow up line height)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -524,18 +524,25 @@
                 '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:last-child){transform:translateY(.7em)!important}',
                 '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}',
                 // KaTeX reserves vertical space for the full \underbrace assembly
-                // via the .base > .strut element — height grows to ~1.85em, which
-                // (combined with our paragraph line-height of 1.65) blows up the
-                // entire line. max-height alone wasn't enough because the strut
-                // still inherited line-height from the paragraph. We need both:
-                //   1. Force the .katex inline math element to a tight line-height
-                //      so it doesn't contribute extra leading to the line box.
-                //   2. Force the strut to a normal text height (1em / -.25em
-                //      baseline) so it doesn't request a tall line.
-                // The math content (vlist) is absolute-positioned and will
-                // visually extend into the gutter between lines, which is fine.
-                '.katex:not(.katex-display){line-height:1!important}',
-                '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}'
+                // through three independent mechanisms: the strut, the .base
+                // inline-block, and the .mord.munder inline-block (whose stacked
+                // vlists need 1.848em). Capping just the strut wasn't enough —
+                // the .mord.munder kept its full intrinsic height and the line
+                // grew with it. So we cap ALL three at normal text height:
+                //
+                //   • .katex (line-height 1, vertical-align baseline)
+                //   • .base > .strut (height: 1em, vertical-align: -.25em)
+                //   • .base / .mord.munder / .mord.mover (max-height 1em with
+                //     overflow:visible so the label, brace, etc. can extend
+                //     into the inter-line gutter without claiming line space).
+                //
+                // The math content (absolute-positioned vlist children) draws
+                // outside these capped boxes — perfectly fine, since adjacent
+                // lines have their own line-height padding around them.
+                '.katex:not(.katex-display){line-height:1!important;vertical-align:baseline!important}',
+                '.katex:not(.katex-display) .base{max-height:1em!important;overflow:visible;vertical-align:baseline!important}',
+                '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}',
+                '.katex:not(.katex-display) .mord.munder,.katex:not(.katex-display) .mord.mover{max-height:1em!important;overflow:visible!important;vertical-align:baseline!important}'
             ].join('');
             document.head.appendChild(s);
         }
