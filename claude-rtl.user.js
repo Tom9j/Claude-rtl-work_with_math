@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.15
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (underbrace label clears the brace, correctly)
+// @version      2026.05.27.16
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (underbrace no longer blows up line height)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -509,10 +509,9 @@
                 // dominant inside the line, like Gemini's MathJax.
                 '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.6em!important}',
                 // --- UNDERBRACE / OVERBRACE WITH HEBREW LABELS ---
-                // KaTeX positions the \underbrace label with absolute top offsets
-                // calibrated for KaTeX_Main text-mode metrics. Hebrew falls back to
-                // Noto Sans Hebrew (which has taller glyphs) and crashes upward
-                // into the brace.
+                // KaTeX positions the label with absolute top offsets calibrated
+                // for KaTeX_Main text-mode metrics. Hebrew falls back to Noto Sans
+                // Hebrew (taller glyphs) and crashes upward into the brace.
                 //
                 // \underbrace{X}_{label} is rendered as TWO nested .mord.munder:
                 //   OUTER: contains the label and the inner munder wrapper
@@ -521,10 +520,16 @@
                 // To shift only the OUTER label we must exclude both the brace
                 // SVG (.svg-align) and any "last-child" (which is content/wrapper).
                 // That isolates the label span (no class, first child) and pushes
-                // it ~0.7em down. Overbrace is the mirror: the LABEL is the LAST
-                // non-svg-align child; push it up.
+                // it ~0.7em down. Overbrace is the mirror.
                 '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:last-child){transform:translateY(.7em)!important}',
-                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}'
+                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}',
+                // KaTeX reserves vertical space for the full \underbrace assembly
+                // via the .base > .strut element — height grows to ~1.85em, which
+                // blows up the entire line height in the paragraph and leaves a
+                // huge gap above and below the formula. Cap the strut so the line
+                // stays at normal text height; the label and brace will visually
+                // overflow slightly into the inter-line gutter, which is fine.
+                '.katex:not(.katex-display) .base > .strut{max-height:1.3em!important}'
             ].join('');
             document.head.appendChild(s);
         }
