@@ -593,23 +593,20 @@ $RTL_INJECTION_CODE = @'
                 // KaTeX reserves vertical space for the full \underbrace assembly
                 // through three independent mechanisms: the strut, the .base
                 // inline-block, and the .mord.munder inline-block (whose stacked
-                // vlists need 1.848em). Capping just the strut wasn't enough —
-                // the .mord.munder kept its full intrinsic height and the line
-                // grew with it. So we cap ALL three at normal text height:
-                //
-                //   • .katex (line-height 1, vertical-align baseline)
-                //   • .base > .strut (height: 1em, vertical-align: -.25em)
-                //   • .base / .mord.munder / .mord.mover (max-height 1em with
-                //     overflow:visible so the label, brace, etc. can extend
-                //     into the inter-line gutter without claiming line space).
-                //
-                // The math content (absolute-positioned vlist children) draws
-                // outside these capped boxes — perfectly fine, since adjacent
-                // lines have their own line-height padding around them.
+                // vlists need 1.848em). Cap all three at normal text height so
+                // the math doesn't dictate the line-box height.
                 '.katex:not(.katex-display){line-height:1!important;vertical-align:baseline!important}',
                 '.katex:not(.katex-display) .base{max-height:1em!important;overflow:visible;vertical-align:baseline!important}',
                 '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}',
-                '.katex:not(.katex-display) .mord.munder,.katex:not(.katex-display) .mord.mover{max-height:1em!important;overflow:visible!important;vertical-align:baseline!important}'
+                '.katex:not(.katex-display) .mord.munder,.katex:not(.katex-display) .mord.mover{max-height:1em!important;overflow:visible!important;vertical-align:baseline!important}',
+                // The capped math is fine, but the paragraph still has the
+                // surrounding Hebrew text at line-height 1.65 — that gives a
+                // ~28px line-box around a 20px math glyph and looks gappy.
+                // For paragraphs containing tall math constructs (\underbrace,
+                // \overbrace), drop line-height to 1.4 so the surrounding text
+                // hugs the math more tightly. Plain math (just \frac or \sum)
+                // keeps the default 1.65 for comfortable reading.
+                '[dir="rtl"] p:has(.katex .mord.munder),[dir="rtl"] p:has(.katex .mord.mover),[dir="rtl"] li:has(.katex .mord.munder),[dir="rtl"] li:has(.katex .mord.mover),[data-rtl-split="1"]:has(.katex .mord.munder),[data-rtl-split="1"]:has(.katex .mord.mover),p[dir="rtl"]:has(.katex .mord.munder),p[dir="rtl"]:has(.katex .mord.mover),li[dir="rtl"]:has(.katex .mord.munder),li[dir="rtl"]:has(.katex .mord.mover){line-height:1.4!important}'
             ].join('');
             document.head.appendChild(s);
         }
