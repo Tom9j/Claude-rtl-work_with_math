@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.2
+// @version      2026.05.27.3
 // @description  Smart RTL/bidi support for claude.ai — Hebrew/Arabic + math, mirrored desktop patch
 // @author       Tom9j
 // @match        https://claude.ai/*
@@ -185,26 +185,35 @@
         function forceMathLTR(root) {
             qsa(root, MATH_SEL).forEach(function(m) {
                 m.dir = 'ltr';
-                m.style.direction = 'ltr';
-                m.style.unicodeBidi = 'isolate';
+                m.style.setProperty('direction', 'ltr', 'important');
+                m.style.setProperty('unicode-bidi', 'isolate', 'important');
                 // Do NOT force textAlign here: display math centers via CSS,
                 // inline math has no text-align semantics. Forcing 'left' here
                 // beat the CSS centering rule and made block equations stick
                 // to the left edge inside RTL paragraphs.
 
-                // CRITICAL — also stamp inline direction:ltr on every descendant.
-                // KaTeX splits binary operators across sibling <span class="base">
-                // inline-blocks and they have NO inline style of their own; they
-                // rely on direction inheritance. If any CSS rule (Claude's own,
-                // or a corrupted version of our injected stylesheet) sets
-                // direction:rtl on them, the bases reverse order and the formula
-                // flips (e.g. "m = k + 1" becomes "1 + k = m").
+                // CRITICAL — stamp inline direction AND unicode-bidi on every
+                // descendant. Both are needed:
+                //
+                //   - direction:ltr stops descendants from inheriting RTL from
+                //     the surrounding Hebrew paragraph.
+                //   - unicode-bidi:isolate overrides our own '[dir]>* { unicode-
+                //     bidi: plaintext }' cascade rule, which would otherwise
+                //     pick the .base paragraph direction from the FIRST STRONG
+                //     character. In a base containing Hebrew \text{...} content
+                //     (e.g. "1 \quad כאשר k=") the first strong char is the
+                //     Hebrew letter, so plaintext picks RTL and the entire .base
+                //     reorders right-to-left even when its direction is ltr.
+                //     isolate forces the paragraph base direction to follow the
+                //     `direction` property regardless of content.
+                //
                 // setProperty(..., 'important') beats any non-inline !important
-                // and is robust even when our <style id="claude-rtl-styles"> CSS
-                // is missing, corrupted, or out-of-order.
+                // and is robust even when our injected stylesheet is missing,
+                // corrupted, or out-of-order.
                 var kids = m.querySelectorAll('*');
                 for (var i = 0; i < kids.length; i++) {
                     kids[i].style.setProperty('direction', 'ltr', 'important');
+                    kids[i].style.setProperty('unicode-bidi', 'isolate', 'important');
                 }
             });
         }
