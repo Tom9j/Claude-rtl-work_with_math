@@ -592,11 +592,17 @@ $RTL_INJECTION_CODE = @'
                 '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}',
                 // KaTeX reserves vertical space for the full \underbrace assembly
                 // via the .base > .strut element — height grows to ~1.85em, which
-                // blows up the entire line height in the paragraph and leaves a
-                // huge gap above and below the formula. Cap the strut so the line
-                // stays at normal text height; the label and brace will visually
-                // overflow slightly into the inter-line gutter, which is fine.
-                '.katex:not(.katex-display) .base > .strut{max-height:1.3em!important}'
+                // (combined with our paragraph line-height of 1.65) blows up the
+                // entire line. max-height alone wasn't enough because the strut
+                // still inherited line-height from the paragraph. We need both:
+                //   1. Force the .katex inline math element to a tight line-height
+                //      so it doesn't contribute extra leading to the line box.
+                //   2. Force the strut to a normal text height (1em / -.25em
+                //      baseline) so it doesn't request a tall line.
+                // The math content (vlist) is absolute-positioned and will
+                // visually extend into the gutter between lines, which is fine.
+                '.katex:not(.katex-display){line-height:1!important}',
+                '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}'
             ].join('');
             document.head.appendChild(s);
         }
