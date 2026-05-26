@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.19
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (tighter line-height for paragraphs with tall math)
+// @version      2026.05.27.20
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (cap full math chain + hide KaTeX spacer vlist)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -528,18 +528,26 @@
                 // inline-block, and the .mord.munder inline-block (whose stacked
                 // vlists need 1.848em). Cap all three at normal text height so
                 // the math doesn't dictate the line-box height.
-                '.katex:not(.katex-display){line-height:1!important;vertical-align:baseline!important}',
+                // Cap every container in the math chain (.katex, .katex-html,
+                // .base, .mord.munder, .mord.mover) at 1em with overflow:visible.
+                // Earlier we only capped the inner three — but .katex itself
+                // (the outermost inline-block) had no cap and its intrinsic
+                // height still leaked into the line box. Also explicitly hide
+                // KaTeX's "spacer" vlist-r — the second vlist-r in a munder/mover
+                // that reserves vertical room for the label-depth-reservation;
+                // we already nudge the label visually with translateY, so the
+                // reserved space is dead weight that inflates the line.
+                '.katex:not(.katex-display){line-height:1!important;vertical-align:baseline!important;max-height:1.2em!important;overflow:visible}',
+                '.katex:not(.katex-display) .katex-html{max-height:1em!important;overflow:visible!important;line-height:1!important}',
                 '.katex:not(.katex-display) .base{max-height:1em!important;overflow:visible;vertical-align:baseline!important}',
                 '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}',
                 '.katex:not(.katex-display) .mord.munder,.katex:not(.katex-display) .mord.mover{max-height:1em!important;overflow:visible!important;vertical-align:baseline!important}',
-                // The capped math is fine, but the paragraph still has the
-                // surrounding Hebrew text at line-height 1.65 — that gives a
-                // ~28px line-box around a 20px math glyph and looks gappy.
-                // For paragraphs containing tall math constructs (\underbrace,
-                // \overbrace), drop line-height to 1.4 so the surrounding text
-                // hugs the math more tightly. Plain math (just \frac or \sum)
-                // keeps the default 1.65 for comfortable reading.
-                '[dir="rtl"] p:has(.katex .mord.munder),[dir="rtl"] p:has(.katex .mord.mover),[dir="rtl"] li:has(.katex .mord.munder),[dir="rtl"] li:has(.katex .mord.mover),[data-rtl-split="1"]:has(.katex .mord.munder),[data-rtl-split="1"]:has(.katex .mord.mover),p[dir="rtl"]:has(.katex .mord.munder),p[dir="rtl"]:has(.katex .mord.mover),li[dir="rtl"]:has(.katex .mord.munder),li[dir="rtl"]:has(.katex .mord.mover){line-height:1.4!important}'
+                '.katex:not(.katex-display) .mord.munder > .vlist-t > .vlist-r:nth-of-type(2),.katex:not(.katex-display) .mord.mover > .vlist-t > .vlist-r:nth-of-type(2){display:none!important}',
+                // Surrounding Hebrew text on the math line still claimed line-
+                // height 1.65 (=28px) around what is now a 20px math box. That
+                // gave a one-Hebrew-line-tall gap. Drop the line-height to 1.3
+                // for paragraphs containing tall math so the line hugs the math.
+                '[dir="rtl"] p:has(.katex .mord.munder),[dir="rtl"] p:has(.katex .mord.mover),[dir="rtl"] li:has(.katex .mord.munder),[dir="rtl"] li:has(.katex .mord.mover),[data-rtl-split="1"]:has(.katex .mord.munder),[data-rtl-split="1"]:has(.katex .mord.mover),p[dir="rtl"]:has(.katex .mord.munder),p[dir="rtl"]:has(.katex .mord.mover),li[dir="rtl"]:has(.katex .mord.munder),li[dir="rtl"]:has(.katex .mord.mover){line-height:1.3!important}'
             ].join('');
             document.head.appendChild(s);
         }
