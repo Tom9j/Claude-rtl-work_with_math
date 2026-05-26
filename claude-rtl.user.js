@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.3
+// @version      2026.05.27.4
 // @description  Smart RTL/bidi support for claude.ai — Hebrew/Arabic + math, mirrored desktop patch
 // @author       Tom9j
 // @match        https://claude.ai/*
@@ -242,9 +242,16 @@
         // operator chars allowed in between. Tightened to require start/end on
         // an "anchor" char so we don't grab trailing punctuation like ". ".
         var MATH_TEXT_RUN = /[A-Za-z0-9(\[{][A-Za-z0-9 \t+\-*\/=<>(){}\[\]≤≥≠·^_.,'`]*[A-Za-z0-9)\]}]/g;
-        // Operator/bracket trigger — without these the run is just plain English
-        // and bidi handles it fine; wrapping unnecessarily would be wasted work.
-        var BIDI_TRIGGER = /[<>=+\-*\/()\[\]{}≤≥≠·]/;
+        // Operator-only trigger — must contain a real math/comparison operator
+        // for wrapping to make sense. Bare brackets/parens are NOT enough: a code
+        // span like `succ` followed by a sentence-closing `)` would otherwise get
+        // wrapped, which pulls the close paren into an LTR isolate. The open
+        // paren (still in the surrounding Hebrew text node) stays at RTL level
+        // and gets mirrored to a `)`-glyph — so the user sees two `)`-glyphs
+        // bracketing the parenthetical. Requiring an actual operator restricts
+        // wrapping to true math/expression patterns and lets natural Hebrew
+        // paren mirroring keep its symmetric `(...)` shape.
+        var BIDI_TRIGGER = /[<>=+\-*\/≤≥≠·]/;
 
         function bidiIsolateMathInTextNodes(root) {
             if (!root || !root.nodeType) return;
