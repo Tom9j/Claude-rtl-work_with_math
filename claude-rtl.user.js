@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.10
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (bigger inline summations)
+// @version      2026.05.27.11
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (much bigger inline sigmas)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -505,14 +505,16 @@
                 '.katex-display .katex{font-size:1em!important}',
                 // --- INLINE LARGE OPERATORS (sum, int, prod) ---
                 // KaTeX's default for `.op-symbol.small-op` is 1.2em (relative to
-                // .katex). We bump it to 1.35em so summations/integrals/products
-                // read as clearly larger than ordinary identifiers — Gemini's sums
-                // are big and confident, not lost in the line.
+                // .katex). We push it to 1.8em so summations/integrals/products
+                // read as dominant — like display-style sigmas inside inline math.
+                // With outer .katex at 1.1em, the sigma sits at ~1.98em of body
+                // text (nearly double the surrounding Hebrew text height).
                 //
                 // The .msupsub holds the stacked sub/sup limits (Claude renders
-                // these with \limits even inline). Shrinking it to .82em pulls the
-                // limits visually closer to the sigma and shaves vertical extent.
-                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.35em!important}',
+                // these with \limits even inline). Keeping it at .82em pulls the
+                // limits visually closer to the sigma and shaves vertical extent
+                // so the much-bigger sigma doesn't blow up the line height further.
+                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.8em!important}',
                 '.katex:not(.katex-display) .mop > .msupsub{font-size:.82em!important;margin-left:.04em}'
             ].join('');
             document.head.appendChild(s);
