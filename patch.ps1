@@ -578,12 +578,20 @@ $RTL_INJECTION_CODE = @'
                 // --- UNDERBRACE / OVERBRACE WITH HEBREW LABELS ---
                 // KaTeX positions the \underbrace label with absolute top offsets
                 // calibrated for KaTeX_Main text-mode metrics. Hebrew falls back to
-                // Noto Sans Hebrew, whose glyphs are taller — the label crashes
-                // upward into the brace. Same problem mirror-imaged on \overbrace.
-                // Push the underbrace label DOWN (positive translateY) and the
-                // overbrace label UP (negative translateY) so they clear the brace.
-                '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:first-child{transform:translateY(.45em)!important}',
-                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:last-child{transform:translateY(-.45em)!important}'
+                // Noto Sans Hebrew (which has taller glyphs) and crashes upward
+                // into the brace.
+                //
+                // \underbrace{X}_{label} is rendered as TWO nested .mord.munder:
+                //   OUTER: contains the label and the inner munder wrapper
+                //   INNER: contains the brace SVG (.svg-align) and the content X
+                //
+                // To shift only the OUTER label we must exclude both the brace
+                // SVG (.svg-align) and any "last-child" (which is content/wrapper).
+                // That isolates the label span (no class, first child) and pushes
+                // it ~0.7em down. Overbrace is the mirror: the LABEL is the LAST
+                // non-svg-align child; push it up.
+                '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:last-child){transform:translateY(.7em)!important}',
+                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}'
             ].join('');
             document.head.appendChild(s);
         }
