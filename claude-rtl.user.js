@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.6
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (Heebo font, bigger math, table cells)
+// @version      2026.05.27.7
+// @description  Smart RTL/bidi + Gemini-style Hebrew typography for claude.ai (Noto Sans Hebrew + Inter, modest math)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -412,14 +412,15 @@
             bidiIsolateMathInTextNodes(document.body);
         }
 
-        // Load Heebo from Google Fonts via a <link> in <head>. Using <link>
-        // instead of @import keeps the font fetch non-blocking. If CSP blocks
-        // the request (some Electron builds do), the cascade silently falls
-        // back to the system-font stack — no other rules are affected.
+        // Load Noto Sans Hebrew + Inter from Google Fonts via a <link> in <head>.
+        // This pair mirrors the typographic system Google uses across Gemini /
+        // Android / Maps (Google Sans for English, Noto Sans Hebrew for Hebrew).
+        // Google Sans isn't free; Inter is the closest open-source match.
+        // Using <link> instead of @import keeps the font fetch non-blocking;
+        // if CSP blocks it, the cascade falls back to system fonts silently.
         function injectFont() {
             if (document.getElementById('claude-rtl-font')) return;
-            // preconnect to fonts.gstatic.com (where the .woff2 files live) so
-            // the actual font fetch starts the moment the stylesheet parses.
+            // preconnect so the .woff2 fetch starts the moment the stylesheet parses.
             var pc1 = document.createElement('link');
             pc1.rel = 'preconnect';
             pc1.href = 'https://fonts.googleapis.com';
@@ -432,7 +433,7 @@
             var link = document.createElement('link');
             link.id = 'claude-rtl-font';
             link.rel = 'stylesheet';
-            link.href = 'https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap';
+            link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap';
             document.head.appendChild(link);
         }
 
@@ -479,26 +480,26 @@
                 // the start of Hebrew text instead of the end — see issue #7).
                 '[dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important}',
                 '.group:hover [dir="rtl"][class*="mask-image:linear-gradient(to_right"],.group:focus-within [dir="rtl"][class*="mask-image:linear-gradient(to_right"],[data-menu-open="true"] [dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important}',
-                // --- HEBREW TYPOGRAPHY ---
-                // Replace the default font stack for Hebrew/Arabic body text with
-                // Heebo (fetched from Google Fonts above). Includes system-font
-                // fallbacks so the page is readable while Heebo loads — and stays
-                // readable if CSP or offline prevents Heebo from arriving at all.
-                // Limited to body-text elements (p, li, headings, blockquote, table
-                // cells) so KaTeX (KaTeX_Main) and code (mono) keep their dedicated
-                // fonts. Matches BOTH descendant-of-[dir="rtl"] AND elements that
-                // have dir="rtl" set on themselves (table cells, headings stamped
-                // by processText, etc.).
-                'p[dir="rtl"],li[dir="rtl"],h1[dir="rtl"],h2[dir="rtl"],h3[dir="rtl"],h4[dir="rtl"],h5[dir="rtl"],h6[dir="rtl"],blockquote[dir="rtl"],td[dir="rtl"],th[dir="rtl"],summary[dir="rtl"],label[dir="rtl"],dt[dir="rtl"],dd[dir="rtl"],[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Heebo","Assistant","Rubik","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.7;letter-spacing:.005em}',
-                // Don’t apply the Hebrew font to code or math nested inside
-                // those RTL containers — they should keep KaTeX_Main / monospace.
-                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important}',
-                // --- MATH SIZING ---
-                // KaTeX_Main is the gold-standard math font (it's TeX's Computer
-                // Modern), so we keep it. Just bump the size so formulas stand
-                // out next to Heebo body text: inline +18%, display +50%.
-                '.katex{font-size:1.18em!important}',
-                '.katex-display{font-size:1.5em!important}',
+                // --- HEBREW TYPOGRAPHY (Gemini-style) ---
+                // Pair Noto Sans Hebrew (Google's official Hebrew face — used in
+                // Android, Maps, Gemini, etc.) with Inter for any embedded Latin.
+                // Inter is the closest open-source match to Google Sans, which is
+                // proprietary. Together these mimic Gemini's reading experience:
+                // clean rounded letterforms, generous-but-not-excessive line-height,
+                // zero tracking.
+                //
+                // Selector matches BOTH descendant-of-[dir="rtl"] and elements
+                // that have dir="rtl" stamped on themselves (table cells set by
+                // Claude, headings set by processText, etc.).
+                'p[dir="rtl"],li[dir="rtl"],h1[dir="rtl"],h2[dir="rtl"],h3[dir="rtl"],h4[dir="rtl"],h5[dir="rtl"],h6[dir="rtl"],blockquote[dir="rtl"],td[dir="rtl"],th[dir="rtl"],summary[dir="rtl"],label[dir="rtl"],dt[dir="rtl"],dd[dir="rtl"],[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Noto Sans Hebrew","Inter","Heebo","Assistant","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.65;letter-spacing:0;font-feature-settings:"kern" 1,"liga" 1,"calt" 1}',
+                // Code and math inside RTL containers keep their own fonts.
+                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important;font-feature-settings:revert!important}',
+                // --- MATH SIZING (Gemini-style: subtle, not flashy) ---
+                // Gemini doesn't dramatically scale up math. Inline math sits
+                // about 10% larger than body text (just enough to feel slightly
+                // distinct), display math gets a modest 35% bump.
+                '.katex{font-size:1.1em!important}',
+                '.katex-display{font-size:1.35em!important}',
                 '.katex-display .katex{font-size:1em!important}'
             ].join('');
             document.head.appendChild(s);
