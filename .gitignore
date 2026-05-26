@@ -1,0 +1,15 @@
+# Local clutter
+*.log
+*.tmp
+*.bak
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Build / temp output if any
+node_modules/
+dist/
+out/
