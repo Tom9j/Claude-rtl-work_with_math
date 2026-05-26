@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.5
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (Heebo font, math protection, mirrored desktop patch)
+// @version      2026.05.27.6
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (Heebo font, bigger math, table cells)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -484,12 +484,22 @@
                 // Heebo (fetched from Google Fonts above). Includes system-font
                 // fallbacks so the page is readable while Heebo loads — and stays
                 // readable if CSP or offline prevents Heebo from arriving at all.
-                // Limited to body-text elements (p, li, headings, blockquote) so
-                // KaTeX (KaTeX_Main) and code (mono) keep their dedicated fonts.
-                '[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Heebo","Assistant","Rubik","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.7;letter-spacing:.005em}',
+                // Limited to body-text elements (p, li, headings, blockquote, table
+                // cells) so KaTeX (KaTeX_Main) and code (mono) keep their dedicated
+                // fonts. Matches BOTH descendant-of-[dir="rtl"] AND elements that
+                // have dir="rtl" set on themselves (table cells, headings stamped
+                // by processText, etc.).
+                'p[dir="rtl"],li[dir="rtl"],h1[dir="rtl"],h2[dir="rtl"],h3[dir="rtl"],h4[dir="rtl"],h5[dir="rtl"],h6[dir="rtl"],blockquote[dir="rtl"],td[dir="rtl"],th[dir="rtl"],summary[dir="rtl"],label[dir="rtl"],dt[dir="rtl"],dd[dir="rtl"],[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Heebo","Assistant","Rubik","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.7;letter-spacing:.005em}',
                 // Don’t apply the Hebrew font to code or math nested inside
                 // those RTL containers — they should keep KaTeX_Main / monospace.
-                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important}'
+                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important}',
+                // --- MATH SIZING ---
+                // KaTeX_Main is the gold-standard math font (it's TeX's Computer
+                // Modern), so we keep it. Just bump the size so formulas stand
+                // out next to Heebo body text: inline +18%, display +50%.
+                '.katex{font-size:1.18em!important}',
+                '.katex-display{font-size:1.5em!important}',
+                '.katex-display .katex{font-size:1em!important}'
             ].join('');
             document.head.appendChild(s);
         }
