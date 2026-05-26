@@ -571,18 +571,25 @@ $RTL_INJECTION_CODE = @'
                 '.katex-display{font-size:1.4em!important}',
                 '.katex-display .katex{font-size:1em!important}',
                 // --- INLINE LARGE OPERATORS (sum, int, prod) ---
-                // KaTeX's default for `.op-symbol.small-op` is 1.2em (relative to
-                // .katex). We push it to 1.8em so summations/integrals/products
-                // read as dominant — like display-style sigmas inside inline math.
-                // With outer .katex at 1.1em, the sigma sits at ~1.98em of body
-                // text (nearly double the surrounding Hebrew text height).
-                //
-                // The .msupsub holds the stacked sub/sup limits (Claude renders
-                // these with \limits even inline). Keeping it at .82em pulls the
-                // limits visually closer to the sigma and shaves vertical extent
-                // so the much-bigger sigma doesn't blow up the line height further.
+                // Big sigma/integral/product symbol — pushed to 1.8em so it reads
+                // as dominant inside the line, like Gemini's MathJax rendering.
                 '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.8em!important}',
-                '.katex:not(.katex-display) .mop > .msupsub{font-size:.82em!important;margin-left:.04em}'
+                // KaTeX places the inline-mode \sum limits using a `vlist` of
+                // absolutely positioned spans with em-based `top` offsets. Our
+                // earlier font-size shrink on .msupsub broke those offsets, which
+                // made the i=0 / n-1 placement look off. Replace KaTeX's absolute
+                // positioning with an honest flexbox column-reverse so the FIRST
+                // DOM child of the vlist (subscript, i=0) lands BELOW the sigma
+                // and the SECOND child (superscript, n-1) lands ABOVE it,
+                // guaranteed.
+                '.katex:not(.katex-display) .mop > .msupsub{display:inline-flex!important;flex-direction:column!important;justify-content:center!important;vertical-align:middle!important;margin-left:.05em;line-height:1;font-size:.85em!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist-t,.katex:not(.katex-display) .mop > .msupsub .vlist-t2{display:inline-block!important;height:auto!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist-r{display:block!important;height:auto!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist-r:nth-of-type(2){display:none!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist{display:flex!important;flex-direction:column-reverse!important;align-items:center!important;height:auto!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist > span{position:static!important;top:auto!important;margin:0!important;height:auto!important;display:block!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist .pstrut{display:none!important}',
+                '.katex:not(.katex-display) .mop > .msupsub .vlist-s{display:none!important}'
             ].join('');
             document.head.appendChild(s);
         }
