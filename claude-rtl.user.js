@@ -1,7 +1,7 @@
-﻿// ==UserScript==
+// ==UserScript==
 // @name         Claude RTL (Web)
-// @namespace    https://github.com/shraga100/claude-desktop-rtl-patch
-// @version      2026.05.26
+// @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
+// @version      2026.05.26.2
 // @description  Smart RTL/bidi support for claude.ai — Hebrew/Arabic + math, mirrored desktop patch
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -226,9 +226,22 @@
                 acceptNode: function(node) {
                     var p = node.parentElement;
                     if (!p) return NodeFilter.FILTER_REJECT;
+                    // CRITICAL: never touch non-rendered text containers.
+                    // <style> in particular: if <html dir="rtl"> (Claude does this
+                    // for Hebrew locale), the walker would descend into our own
+                    // <style id="claude-rtl-styles"> and wrap CSS selectors like
+                    // ".katex *" with U+2066/U+2069. The browser then rejects the
+                    // rules as invalid, our math-protection CSS never loads, and
+                    // every formula collapses back to RTL.
+                    var tag = p.tagName;
+                    if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'NOSCRIPT' ||
+                        tag === 'TEMPLATE' || tag === 'HEAD' || tag === 'TITLE') {
+                        return NodeFilter.FILTER_REJECT;
+                    }
                     if (p.closest('pre') || p.closest('code')) return NodeFilter.FILTER_REJECT;
                     if (p.closest(WRITING_SEL)) return NodeFilter.FILTER_REJECT;
                     if (p.closest(MATH_SEL)) return NodeFilter.FILTER_REJECT;
+                    if (p.closest('style, script, noscript, template, head')) return NodeFilter.FILTER_REJECT;
                     var t = node.nodeValue;
                     if (!t || t.length < 3) return NodeFilter.FILTER_REJECT;
                     if (t.indexOf(LRI) !== -1) return NodeFilter.FILTER_REJECT; // idempotent
