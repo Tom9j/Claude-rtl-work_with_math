@@ -526,10 +526,13 @@ $RTL_INJECTION_CODE = @'
                 // that might cascade RTL onto math internals.
                 '.katex,.katex *,.katex-display,.katex-display *,mjx-container,mjx-container *,.MathJax,.MathJax *,math,math *{direction:ltr!important}',
                 '[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] .katex-display,[dir="rtl"] .katex-display *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[dir="rtl"] .MathJax,[dir="rtl"] .MathJax *,[dir="rtl"] math,[dir="rtl"] math *{direction:ltr!important;unicode-bidi:isolate!important}',
-                // Inline math: stay on the surrounding text baseline and don't
-                // line-wrap mid-formula. Without this, Hebrew x-height differences
-                // can make inline equations float above the line.
-                '.katex:not(.katex-display),mjx-container:not([display="true"]){display:inline-block!important;vertical-align:middle!important;white-space:nowrap!important}',
+                // Inline math: keep on the surrounding text's baseline (KaTeX's
+                // internal .strut element handles ascender/descender clearance).
+                // We had vertical-align:middle here previously to compensate for
+                // Hebrew x-height, but with Noto Sans Hebrew it pushed single-
+                // glyph math (e.g. \mathbb{N}) visibly below the line. baseline
+                // is what KaTeX is designed against and renders cleanly.
+                '.katex:not(.katex-display),mjx-container:not([display="true"]){display:inline-block!important;vertical-align:baseline!important;white-space:nowrap!important}',
                 // Display math: own line, centered, breathing room. overflow-x:auto
                 // so a wide equation scrolls horizontally instead of bleeding into
                 // the sidebar or being clipped.
