@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.13
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (clean sum limits, big sigma)
+// @version      2026.05.27.14
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (underbrace/overbrace labels clear the brace)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -507,14 +507,16 @@
                 // Bigger sigma/integral/product. KaTeX's default for .op-symbol
                 // .small-op is 1.2em; we push to 1.6em so the operator is
                 // dominant inside the line, like Gemini's MathJax.
-                //
-                // We deliberately DO NOT touch .msupsub anymore. KaTeX places
-                // limits with absolute positioning based on em offsets, and any
-                // font-size shrink or flex hack we tried broke those offsets and
-                // misaligned the i=0 / n-1 stack. Leaving msupsub at its native
-                // size keeps the limits properly stacked — subscript below the
-                // sigma, superscript above — exactly the standard math notation.
-                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.6em!important}'
+                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.6em!important}',
+                // --- UNDERBRACE / OVERBRACE WITH HEBREW LABELS ---
+                // KaTeX positions the \underbrace label with absolute top offsets
+                // calibrated for KaTeX_Main text-mode metrics. Hebrew falls back to
+                // Noto Sans Hebrew, whose glyphs are taller — the label crashes
+                // upward into the brace. Same problem mirror-imaged on \overbrace.
+                // Push the underbrace label DOWN (positive translateY) and the
+                // overbrace label UP (negative translateY) so they clear the brace.
+                '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:first-child{transform:translateY(.45em)!important}',
+                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:last-child{transform:translateY(-.45em)!important}'
             ].join('');
             document.head.appendChild(s);
         }
