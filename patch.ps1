@@ -479,6 +479,30 @@ $RTL_INJECTION_CODE = @'
             bidiIsolateMathInTextNodes(document.body);
         }
 
+        // Load Heebo from Google Fonts via a <link> in <head>. Using <link>
+        // instead of @import keeps the font fetch non-blocking. If CSP blocks
+        // the request (some Electron builds do), the cascade silently falls
+        // back to the system-font stack — no other rules are affected.
+        function injectFont() {
+            if (document.getElementById('claude-rtl-font')) return;
+            // preconnect to fonts.gstatic.com (where the .woff2 files live) so
+            // the actual font fetch starts the moment the stylesheet parses.
+            var pc1 = document.createElement('link');
+            pc1.rel = 'preconnect';
+            pc1.href = 'https://fonts.googleapis.com';
+            document.head.appendChild(pc1);
+            var pc2 = document.createElement('link');
+            pc2.rel = 'preconnect';
+            pc2.href = 'https://fonts.gstatic.com';
+            pc2.crossOrigin = 'anonymous';
+            document.head.appendChild(pc2);
+            var link = document.createElement('link');
+            link.id = 'claude-rtl-font';
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap';
+            document.head.appendChild(link);
+        }
+
         function injectStyles() {
             if (document.getElementById('claude-rtl-styles')) return;
             var s = document.createElement('style');
@@ -521,12 +545,24 @@ $RTL_INJECTION_CODE = @'
                 // (Tailwind classes like [mask-image:linear-gradient(to_right,...)] cut off
                 // the start of Hebrew text instead of the end — see issue #7).
                 '[dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important}',
-                '.group:hover [dir="rtl"][class*="mask-image:linear-gradient(to_right"],.group:focus-within [dir="rtl"][class*="mask-image:linear-gradient(to_right"],[data-menu-open="true"] [dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important}'
+                '.group:hover [dir="rtl"][class*="mask-image:linear-gradient(to_right"],.group:focus-within [dir="rtl"][class*="mask-image:linear-gradient(to_right"],[data-menu-open="true"] [dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important}',
+                // --- HEBREW TYPOGRAPHY ---
+                // Replace the default font stack for Hebrew/Arabic body text with
+                // Heebo (fetched from Google Fonts above). Includes system-font
+                // fallbacks so the page is readable while Heebo loads — and stays
+                // readable if CSP or offline prevents Heebo from arriving at all.
+                // Limited to body-text elements (p, li, headings, blockquote) so
+                // KaTeX (KaTeX_Main) and code (mono) keep their dedicated fonts.
+                '[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Heebo","Assistant","Rubik","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.7;letter-spacing:.005em}',
+                // Don’t apply the Hebrew font to code or math nested inside
+                // those RTL containers — they should keep KaTeX_Main / monospace.
+                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important}'
             ].join('');
             document.head.appendChild(s);
         }
 
         function init() {
+            injectFont();
             injectStyles();
             processAll();
 
