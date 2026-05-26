@@ -260,6 +260,21 @@ $RTL_INJECTION_CODE = @'
                 // inline math has no text-align semantics. Forcing 'left' here
                 // beat the CSS centering rule and made block equations stick
                 // to the left edge inside RTL paragraphs.
+
+                // CRITICAL — also stamp inline direction:ltr on every descendant.
+                // KaTeX splits binary operators across sibling <span class="base">
+                // inline-blocks and they have NO inline style of their own; they
+                // rely on direction inheritance. If any CSS rule (Claude's own,
+                // or a corrupted version of our injected stylesheet) sets
+                // direction:rtl on them, the bases reverse order and the formula
+                // flips (e.g. "m = k + 1" becomes "1 + k = m").
+                // setProperty(..., 'important') beats any non-inline !important
+                // and is robust even when our <style id="claude-rtl-styles"> CSS
+                // is missing, corrupted, or out-of-order.
+                var kids = m.querySelectorAll('*');
+                for (var i = 0; i < kids.length; i++) {
+                    kids[i].style.setProperty('direction', 'ltr', 'important');
+                }
             });
         }
 
