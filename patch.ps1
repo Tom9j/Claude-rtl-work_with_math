@@ -479,37 +479,16 @@ $RTL_INJECTION_CODE = @'
             bidiIsolateMathInTextNodes(document.body);
         }
 
-        // Load Noto Sans Hebrew + Inter from Google Fonts via a <link> in <head>.
-        // This pair mirrors the typographic system Google uses across Gemini /
-        // Android / Maps (Google Sans for English, Noto Sans Hebrew for Hebrew).
-        // Google Sans isn't free; Inter is the closest open-source match.
-        // Using <link> instead of @import keeps the font fetch non-blocking;
-        // if CSP blocks it, the cascade falls back to system fonts silently.
-        function injectFont() {
-            if (document.getElementById('claude-rtl-font')) return;
-            // preconnect so the .woff2 fetch starts the moment the stylesheet parses.
-            var pc1 = document.createElement('link');
-            pc1.rel = 'preconnect';
-            pc1.href = 'https://fonts.googleapis.com';
-            document.head.appendChild(pc1);
-            var pc2 = document.createElement('link');
-            pc2.rel = 'preconnect';
-            pc2.href = 'https://fonts.gstatic.com';
-            pc2.crossOrigin = 'anonymous';
-            document.head.appendChild(pc2);
-            var link = document.createElement('link');
-            link.id = 'claude-rtl-font';
-            link.rel = 'stylesheet';
-            link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap';
-            document.head.appendChild(link);
-        }
-
         function injectStyles() {
             if (document.getElementById('claude-rtl-styles')) return;
             var s = document.createElement('style');
             s.id = 'claude-rtl-styles';
             s.textContent = [
+                // === RTL paragraph detection ===
+                // Untagged text containers use plaintext bidi so their direction
+                // follows the first strong character (Hebrew → RTL, English → LTR).
                 'p:not([dir]),li:not([dir]),h1:not([dir]),h2:not([dir]),h3:not([dir]),h4:not([dir]),h5:not([dir]),h6:not([dir]),blockquote:not([dir]),td:not([dir]),th:not([dir]),summary:not([dir]),label:not([dir]),legend:not([dir]),dt:not([dir]),dd:not([dir]),figcaption:not([dir]),caption:not([dir]){unicode-bidi:plaintext!important;text-align:start!important}',
+                // === CODE protection: stay LTR inside Hebrew paragraphs ===
                 'pre,.code-block__code,.relative.group\\/copy{unicode-bidi:embed!important;direction:ltr!important;text-align:left!important}',
                 'code{unicode-bidi:isolate!important;direction:ltr!important}',
                 // --- MATH (KaTeX / MathJax / MathML) ---
@@ -549,81 +528,12 @@ $RTL_INJECTION_CODE = @'
                 // (Tailwind classes like [mask-image:linear-gradient(to_right,...)] cut off
                 // the start of Hebrew text instead of the end — see issue #7).
                 '[dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 85%,transparent 99%)!important}',
-                '.group:hover [dir="rtl"][class*="mask-image:linear-gradient(to_right"],.group:focus-within [dir="rtl"][class*="mask-image:linear-gradient(to_right"],[data-menu-open="true"] [dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important}',
-                // --- HEBREW TYPOGRAPHY (Gemini-style) ---
-                // Pair Noto Sans Hebrew (Google's official Hebrew face — used in
-                // Android, Maps, Gemini, etc.) with Inter for any embedded Latin.
-                // Inter is the closest open-source match to Google Sans, which is
-                // proprietary. Together these mimic Gemini's reading experience:
-                // clean rounded letterforms, generous-but-not-excessive line-height,
-                // zero tracking.
-                //
-                // Selector matches BOTH descendant-of-[dir="rtl"] and elements
-                // that have dir="rtl" stamped on themselves (table cells set by
-                // Claude, headings set by processText, etc.).
-                'p[dir="rtl"],li[dir="rtl"],h1[dir="rtl"],h2[dir="rtl"],h3[dir="rtl"],h4[dir="rtl"],h5[dir="rtl"],h6[dir="rtl"],blockquote[dir="rtl"],td[dir="rtl"],th[dir="rtl"],summary[dir="rtl"],label[dir="rtl"],dt[dir="rtl"],dd[dir="rtl"],[dir="rtl"] p,[dir="rtl"] li,[dir="rtl"] h1,[dir="rtl"] h2,[dir="rtl"] h3,[dir="rtl"] h4,[dir="rtl"] h5,[dir="rtl"] h6,[dir="rtl"] blockquote,[dir="rtl"] td,[dir="rtl"] th,[dir="rtl"] summary,[dir="rtl"] label,[dir="rtl"] dt,[dir="rtl"] dd,[data-rtl-split="1"]{font-family:"Noto Sans Hebrew","Inter","Heebo","Assistant","Segoe UI","Arial Hebrew","David",system-ui,sans-serif!important;font-size:1.0625em;line-height:1.65;letter-spacing:0;font-feature-settings:"kern" 1,"liga" 1,"calt" 1}',
-                // Code and math inside RTL containers keep their own fonts.
-                '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important;font-feature-settings:revert!important}',
-                // --- MATH SIZING ---
-                // KaTeX's natural inline .katex font-size is 1.21em. We previously
-                // dropped it to 1.1em which made math feel small next to the
-                // slightly enlarged Hebrew body text (1.0625em). Bump to 1.3em so
-                // formulas read as confidently bigger than the surrounding text —
-                // matching Claude's stock visual weight, or a touch larger.
-                '.katex{font-size:1.3em!important}',
-                '.katex-display{font-size:1.5em!important}',
-                '.katex-display .katex{font-size:1em!important}',
-                // --- INLINE LARGE OPERATORS (sum, int, prod) ---
-                // Bigger sigma/integral/product. KaTeX's default for .op-symbol
-                // .small-op is 1.2em; we push to 1.6em so the operator is
-                // dominant inside the line, like Gemini's MathJax.
-                '.katex:not(.katex-display) .mop > .op-symbol.small-op{font-size:1.6em!important}',
-                // --- UNDERBRACE / OVERBRACE WITH HEBREW LABELS ---
-                // KaTeX positions the label with absolute top offsets calibrated
-                // for KaTeX_Main text-mode metrics. Hebrew falls back to Noto Sans
-                // Hebrew (taller glyphs) and crashes upward into the brace.
-                //
-                // \underbrace{X}_{label} is rendered as TWO nested .mord.munder:
-                //   OUTER: contains the label and the inner munder wrapper
-                //   INNER: contains the brace SVG (.svg-align) and the content X
-                //
-                // To shift only the OUTER label we must exclude both the brace
-                // SVG (.svg-align) and any "last-child" (which is content/wrapper).
-                // That isolates the label span (no class, first child) and pushes
-                // it ~0.7em down. Overbrace is the mirror.
-                '.katex .mord.munder > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:last-child){transform:translateY(.7em)!important}',
-                '.katex .mord.mover > .vlist-t > .vlist-r:first-child > .vlist > span:not(.svg-align):not(:first-child){transform:translateY(-.7em)!important}',
-                // KaTeX reserves vertical space for the full \underbrace assembly
-                // through three independent mechanisms: the strut, the .base
-                // inline-block, and the .mord.munder inline-block (whose stacked
-                // vlists need 1.848em). Cap all three at normal text height so
-                // the math doesn't dictate the line-box height.
-                // Cap every container in the math chain (.katex, .katex-html,
-                // .base, .mord.munder, .mord.mover) at 1em with overflow:visible.
-                // Earlier we only capped the inner three — but .katex itself
-                // (the outermost inline-block) had no cap and its intrinsic
-                // height still leaked into the line box. Also explicitly hide
-                // KaTeX's "spacer" vlist-r — the second vlist-r in a munder/mover
-                // that reserves vertical room for the label-depth-reservation;
-                // we already nudge the label visually with translateY, so the
-                // reserved space is dead weight that inflates the line.
-                '.katex:not(.katex-display){line-height:1!important;vertical-align:baseline!important;max-height:1.2em!important;overflow:visible}',
-                '.katex:not(.katex-display) .katex-html{max-height:1em!important;overflow:visible!important;line-height:1!important}',
-                '.katex:not(.katex-display) .base{max-height:1em!important;overflow:visible;vertical-align:baseline!important}',
-                '.katex:not(.katex-display) .base > .strut{height:1em!important;vertical-align:-.25em!important}',
-                '.katex:not(.katex-display) .mord.munder,.katex:not(.katex-display) .mord.mover{max-height:1em!important;overflow:visible!important;vertical-align:baseline!important}',
-                '.katex:not(.katex-display) .mord.munder > .vlist-t > .vlist-r:nth-of-type(2),.katex:not(.katex-display) .mord.mover > .vlist-t > .vlist-r:nth-of-type(2){display:none!important}',
-                // Surrounding Hebrew text on the math line still claimed line-
-                // height 1.65 (=28px) around what is now a 20px math box. That
-                // gave a one-Hebrew-line-tall gap. Drop the line-height to 1.3
-                // for paragraphs containing tall math so the line hugs the math.
-                '[dir="rtl"] p:has(.katex .mord.munder),[dir="rtl"] p:has(.katex .mord.mover),[dir="rtl"] li:has(.katex .mord.munder),[dir="rtl"] li:has(.katex .mord.mover),[data-rtl-split="1"]:has(.katex .mord.munder),[data-rtl-split="1"]:has(.katex .mord.mover),p[dir="rtl"]:has(.katex .mord.munder),p[dir="rtl"]:has(.katex .mord.mover),li[dir="rtl"]:has(.katex .mord.munder),li[dir="rtl"]:has(.katex .mord.mover){line-height:1.3!important}'
+                '.group:hover [dir="rtl"][class*="mask-image:linear-gradient(to_right"],.group:focus-within [dir="rtl"][class*="mask-image:linear-gradient(to_right"],[data-menu-open="true"] [dir="rtl"][class*="mask-image:linear-gradient(to_right"]{-webkit-mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important;mask-image:linear-gradient(to left,hsl(var(--always-black)) 60%,transparent 78%)!important}'
             ].join('');
             document.head.appendChild(s);
         }
 
         function init() {
-            injectFont();
             injectStyles();
             processAll();
 
