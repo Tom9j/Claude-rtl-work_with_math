@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Claude RTL (Web)
 // @namespace    https://github.com/Tom9j/Claude-rtl-work_with_math
-// @version      2026.05.27.20
-// @description  Smart RTL/bidi + Hebrew typography for claude.ai (cap full math chain + hide KaTeX spacer vlist)
+// @version      2026.05.27.21
+// @description  Smart RTL/bidi + Hebrew typography for claude.ai (math 1.3em — confidently larger than text)
 // @author       Tom9j
 // @match        https://claude.ai/*
 // @match        https://*.claude.ai/*
@@ -498,10 +498,13 @@
                 // Code and math inside RTL containers keep their own fonts.
                 '[dir="rtl"] code,[dir="rtl"] pre,[dir="rtl"] pre *,[dir="rtl"] .code-block__code,[dir="rtl"] .code-block__code *,[dir="rtl"] .katex,[dir="rtl"] .katex *,[dir="rtl"] mjx-container,[dir="rtl"] mjx-container *,[data-rtl-split="1"] code,[data-rtl-split="1"] pre,[data-rtl-split="1"] pre *,[data-rtl-split="1"] .code-block__code,[data-rtl-split="1"] .code-block__code *,[data-rtl-split="1"] .katex,[data-rtl-split="1"] .katex *,[data-rtl-split="1"] mjx-container,[data-rtl-split="1"] mjx-container *,td[dir="rtl"] code,td[dir="rtl"] .katex,td[dir="rtl"] .katex *,th[dir="rtl"] code,th[dir="rtl"] .katex,th[dir="rtl"] .katex *{font-family:revert!important;font-size:revert!important;line-height:revert!important;letter-spacing:normal!important;font-feature-settings:revert!important}',
                 // --- MATH SIZING ---
-                // Body math gets a small bump so symbols are clearly larger than
-                // surrounding text but the line height isn't blown out.
-                '.katex{font-size:1.1em!important}',
-                '.katex-display{font-size:1.4em!important}',
+                // KaTeX's natural inline .katex font-size is 1.21em. We previously
+                // dropped it to 1.1em which made math feel small next to the
+                // slightly enlarged Hebrew body text (1.0625em). Bump to 1.3em so
+                // formulas read as confidently bigger than the surrounding text —
+                // matching Claude's stock visual weight, or a touch larger.
+                '.katex{font-size:1.3em!important}',
+                '.katex-display{font-size:1.5em!important}',
                 '.katex-display .katex{font-size:1em!important}',
                 // --- INLINE LARGE OPERATORS (sum, int, prod) ---
                 // Bigger sigma/integral/product. KaTeX's default for .op-symbol
