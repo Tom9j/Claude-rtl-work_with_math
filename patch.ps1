@@ -310,17 +310,45 @@ $RTL_INJECTION_CODE = @'
         // Run = letter/digit/open-bracket .. letter/digit/close-bracket, with
         // operator chars allowed in between. Tightened to require start/end on
         // an "anchor" char so we don't grab trailing punctuation like ". ".
-        var MATH_TEXT_RUN = /[A-Za-z0-9(\[{][A-Za-z0-9 \t+\-*\/=<>(){}\[\]≤≥≠·^_.,'`]*[A-Za-z0-9)\]}]/g;
-        // Operator-only trigger — must contain a real math/comparison operator
-        // for wrapping to make sense. Bare brackets/parens are NOT enough: a code
-        // span like `succ` followed by a sentence-closing `)` would otherwise get
-        // wrapped, which pulls the close paren into an LTR isolate. The open
-        // paren (still in the surrounding Hebrew text node) stays at RTL level
-        // and gets mirrored to a `)`-glyph — so the user sees two `)`-glyphs
-        // bracketing the parenthetical. Requiring an actual operator restricts
-        // wrapping to true math/expression patterns and lets natural Hebrew
-        // paren mirroring keep its symmetric `(...)` shape.
-        var BIDI_TRIGGER = /[<>=+\-*\/≤≥≠·]/;
+        // A maximal LTR "run": starts AND ends with a Latin/Greek letter or
+        // digit, and may contain internal spaces and ASCII punctuation. We wrap
+        // every such run that contains at least one LETTER — so each English /
+        // Greek phrase ("Definition 1.9.1", "β-normal form", "β-nf", "M", "N",
+        // code identifiers, etc.) becomes its own isolated LTR island. That is
+        // what makes mixed Hebrew+Latin text read continuously instead of the
+        // Latin phrases jumping backwards into the RTL flow.
+        //
+        // Pure number/punctuation runs like "(2)" are left to native bidi (no
+        // letter → not wrapped). Leading/trailing neutral punctuation is excluded
+        // (the run must begin and end on an alphanumeric), so a trailing ")" that
+        // closes a Hebrew parenthetical stays in the RTL flow and mirrors
+        // correctly with its Hebrew open-paren — no double-")" artifacts.
+        var LTR_RUN = /[A-Za-z0-9À-ɏͰ-Ͽἀ-῿([{](?:[A-Za-z0-9À-ɏͰ-Ͽἀ-῿ \t.,;:!?+\-*\/=<>()\[\]{}'"`^_|&%$#@~\\]*[A-Za-z0-9À-ɏͰ-Ͽἀ-῿)\]}])?/g;
+        var HAS_LTR_LETTER = /[A-Za-zÀ-ɏͰ-Ͽἀ-῿]/;
+        // Split a matched run into unbalanced leading openers, a balanced core,
+        // and unbalanced trailing closers. A bracket whose partner is NOT inside
+        // the run belongs to the surrounding Hebrew (RTL) text and must stay
+        // there so it mirrors correctly (the ")" in "...succ)" closes a Hebrew
+        // "("); a bracket whose partner IS inside the run (both parens of
+        // "P(k+1)") stays in the LTR isolate. Kills the double-")" artifact and
+        // the lone-"(" that would mirror to a ")"-glyph in RTL flow.
+        function splitBidiBrackets(s) {
+            var lead = '', trail = '';
+            var closeToOpen = { ')': '(', ']': '[', '}': '{' };
+            var openToClose = { '(': ')', '[': ']', '{': '}' };
+            function count(str, ch) { var n = 0; for (var i = 0; i < str.length; i++) { if (str.charAt(i) === ch) n++; } return n; }
+            while (s.length) {
+                var last = s.charAt(s.length - 1);
+                if (closeToOpen[last] && count(s, last) > count(s, closeToOpen[last])) { trail = last + trail; s = s.slice(0, -1); continue; }
+                break;
+            }
+            while (s.length) {
+                var first = s.charAt(0);
+                if (openToClose[first] && count(s, first) > count(s, openToClose[first])) { lead = lead + first; s = s.slice(1); continue; }
+                break;
+            }
+            return { lead: lead, core: s, trail: trail };
+        }
 
         function bidiIsolateMathInTextNodes(root) {
             if (!root || !root.nodeType) return;
@@ -348,10 +376,9 @@ $RTL_INJECTION_CODE = @'
                     if (p.closest(MATH_SEL)) return NodeFilter.FILTER_REJECT;
                     if (p.closest('style, script, noscript, template, head')) return NodeFilter.FILTER_REJECT;
                     var t = node.nodeValue;
-                    if (!t || t.length < 3) return NodeFilter.FILTER_REJECT;
+                    if (!t) return NodeFilter.FILTER_REJECT;
                     if (t.indexOf(LRI) !== -1) return NodeFilter.FILTER_REJECT; // idempotent
-                    if (!BIDI_TRIGGER.test(t)) return NodeFilter.FILTER_REJECT;
-                    if (!/[A-Za-z0-9]/.test(t)) return NodeFilter.FILTER_REJECT;
+                    if (!HAS_LTR_LETTER.test(t)) return NodeFilter.FILTER_REJECT;
                     // Only need isolation when the surrounding flow is RTL.
                     var rtlAncestor = p.closest('[dir="rtl"]');
                     if (!rtlAncestor) return NodeFilter.FILTER_REJECT;
@@ -365,10 +392,12 @@ $RTL_INJECTION_CODE = @'
                 var node = nodes[i];
                 var text = node.nodeValue;
                 var changed = false;
-                var wrapped = text.replace(MATH_TEXT_RUN, function(match) {
-                    if (!BIDI_TRIGGER.test(match)) return match;
+                var wrapped = text.replace(LTR_RUN, function(match) {
+                    if (!HAS_LTR_LETTER.test(match)) return match;
+                    var parts = splitBidiBrackets(match);
+                    if (!HAS_LTR_LETTER.test(parts.core)) return match;
                     changed = true;
-                    return LRI + match + PDI;
+                    return parts.lead + LRI + parts.core + PDI + parts.trail;
                 });
                 if (changed) {
                     try { node.nodeValue = wrapped; } catch(e) {}
